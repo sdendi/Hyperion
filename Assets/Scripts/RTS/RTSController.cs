@@ -50,8 +50,59 @@ namespace RTS
                 if (mainCamera == null) return;
             }
 
+            HandleHotkeySelection();
             HandleSelectionInput();
             HandleCommandInput();
+        }
+
+        private void HandleHotkeySelection()
+        {
+            for (int i = 1; i <= 9; i++)
+            {
+                KeyCode alphaKey = KeyCode.Alpha0 + i;
+                KeyCode keypadKey = KeyCode.Keypad0 + i;
+
+                if (Input.GetKeyDown(alphaKey) || Input.GetKeyDown(keypadKey))
+                {
+                    bool isCtrlHeld = Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl);
+                    bool isShiftHeld = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+
+                    if (isCtrlHeld)
+                    {
+                        // Assign selected units to group i
+                        foreach (var unit in selectedUnits)
+                        {
+                            if (unit != null)
+                            {
+                                unit.GroupNumber = i;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // Select all units assigned to group i
+                        SelectUnitsByGroup(i, isShiftHeld);
+                    }
+                    break;
+                }
+            }
+        }
+
+        public void SelectUnitsByGroup(int groupNumber, bool isShiftHeld)
+        {
+            if (!isShiftHeld)
+            {
+                DeselectAll();
+            }
+
+            RTSUnit[] allUnits = FindObjectsByType<RTSUnit>(FindObjectsInactive.Exclude);
+            foreach (var unit in allUnits)
+            {
+                if (unit != null && unit.GroupNumber == groupNumber)
+                {
+                    SelectUnit(unit);
+                }
+            }
         }
 
         private void HandleSelectionInput()
@@ -148,7 +199,7 @@ namespace RTS
             }
 
             Bounds viewportBounds = GetViewportBounds(screenPos1, screenPos2);
-            RTSUnit[] allUnits = FindObjectsByType<RTSUnit>(FindObjectsSortMode.None);
+            RTSUnit[] allUnits = FindObjectsByType<RTSUnit>(FindObjectsInactive.Exclude);
 
             foreach (var unit in allUnits)
             {
@@ -199,9 +250,9 @@ namespace RTS
                 return;
             }
 
-            // Basic formation spacing for multiple units
+            // Formation spacing for multiple units (accounting for unit radius)
             int count = selectedUnits.Count;
-            float spacing = 1.5f;
+            float spacing = 2.0f;
             int cols = Mathf.CeilToInt(Mathf.Sqrt(count));
 
             for (int i = 0; i < count; i++)
